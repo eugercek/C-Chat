@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +13,6 @@
 
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
-  int port_no;
   int sockid;
 
   if (argc != 2) {
@@ -57,6 +57,7 @@ int main(int argc, char *argv[]) {
 
   int client;
   struct sockaddr_storage client_addr;
+  char client_ip_string[30];
   socklen_t addrlen = sizeof client_addr;
 
   while (1) {
@@ -65,9 +66,14 @@ int main(int argc, char *argv[]) {
       perror("accept(): ");
       exit(6);
     }
-
-    printf("Connection : %s\n", "Someone");
+    // TODO Better way to give addr
+    inet_ntop(client_addr.ss_family,
+              &((struct sockaddr_in *)&client_addr)->sin_addr, client_ip_string,
+              sizeof client_ip_string);
+    printf("Connection : %s\n", client_ip_string);
+    sleep(2);
     close(client);
   }
+  close(sockid);
   return 0;
 }
