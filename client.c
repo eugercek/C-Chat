@@ -8,9 +8,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define BUFFER_SIZE 256
+
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
-  int sockid;
+  int sockfd;
+  char buffer[BUFFER_SIZE];
 
   if (argc != 2) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
@@ -33,20 +36,26 @@ int main(int argc, char *argv[]) {
   }
 
   // TODO Create loop for ipv6
-  if ((sockid = socket(server->ai_family, server->ai_socktype,
+  if ((sockfd = socket(server->ai_family, server->ai_socktype,
                        server->ai_protocol)) == -1) {
     perror("socket(): ");
     exit(3);
   }
 
-  if (connect(sockid, server->ai_addr, server->ai_addrlen) == -1) {
+  if (connect(sockfd, server->ai_addr, server->ai_addrlen) == -1) {
     perror("connect(): ");
     exit(3);
   }
+  strcpy(buffer, "Hello");
   freeaddrinfo(server);
 
-  /* const char *message = "Client: Hello Server!\n"; */
-  /* send(sockid, message, strlen(message), 0); */
-  close(sockid);
+  while (1) {
+    scanf("%s", buffer);
+    int i = send(sockfd, buffer, BUFFER_SIZE, 0);
+    if (i < 0) {
+      perror("send(): ");
+    }
+  }
+  close(sockfd);
   return 0;
 }

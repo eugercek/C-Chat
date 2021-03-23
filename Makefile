@@ -6,25 +6,20 @@
 
 # TODO Think about autotools
 
-CC=gcc
-CFLAGS= -Wall -Wextra
+CC = gcc
+CFLAGS = -Wall -Wextra -g
+
+
+# TODO Clean Makefile
 
 all: server client
 
-server: server.o
-	$(CC) $(CFLAGS) server.o -o server.out
-server.o: server.c
-	$(CC) $(CFLAGS) -c server.c
+server: server.o shared.o
+client: client.o shared.o
 
-client: client.o
-	$(CC) $(CFLAGS) client.o -o client.out
-client.o: client.c
-	$(CC) $(CFLAGS) -c client.c
 
 .PHONY: clean
 clean:
-	rm -rf $(wildcard *.o)
-
-.PHONY: run
-
+	rm -rf $(OBJS)
+	rm -rf $(TARGETS)
 # end

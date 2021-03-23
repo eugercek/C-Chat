@@ -1,3 +1,4 @@
+#include "shared.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
@@ -10,19 +11,20 @@
 #include <unistd.h>
 
 #define BACKLOG 20
+#define BUFFER_SIZE 256
 
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
-  int sockid;
+  int sockfd;
+  char buffer[BUFFER_SIZE];
 
   if (argc != 2) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
     exit(1);
   }
 
-  // TODO Initializer vs memset
   // TODO Should macro?
-  memset(&hints, 0, sizeof hints);
+  memzero(&hints, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
@@ -37,31 +39,40 @@ int main(int argc, char *argv[]) {
   }
 
   // TODO Create loop for ipv6
-  if ((sockid = socket(server->ai_family, server->ai_socktype,
+  if ((sockfd = socket(server->ai_family, server->ai_socktype,
                        server->ai_protocol)) == -1) {
     perror("socket(): ");
     exit(3);
   }
 
-  if (bind(sockid, server->ai_addr, server->ai_addrlen) == -1) {
-    perror("bind(): ");
+  // THE Most impotant funciton in this code
+  // If you don't use this you can't bind same port number
+  // untill TIME_WAIT time. Terrible for debug
+  int yes = 1;
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+    perror("setsockopt(): ");
     exit(4);
+  }
+
+  if (bind(sockfd, server->ai_addr, server->ai_addrlen) == -1) {
+    perror("bind(): ");
+    exit(5);
   }
 
   freeaddrinfo(server);
 
-  if (listen(sockid, BACKLOG) == -1) {
+  if (listen(sockfd, BACKLOG) == -1) {
     perror("listen(): ");
-    exit(5);
+    exit(6);
   }
 
   int client;
   struct sockaddr_storage client_addr;
-  char client_ip_string[30];
+  char client_ip_string[INET6_ADDRSTRLEN];
   socklen_t addrlen = sizeof client_addr;
 
   while (1) {
-    client = accept(sockid, (struct sockaddr *)&client_addr, &addrlen);
+    client = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
     if (client == -1) {
       perror("accept(): ");
       exit(6);
@@ -71,8 +82,15 @@ int main(int argc, char *argv[]) {
               &((struct sockaddr_in *)&client_addr)->sin_addr, client_ip_string,
               sizeof client_ip_string);
     printf("Connection : %s\n", client_ip_string);
-    close(client);
+
+    while (1) {
+      int i = recv(client, buffer, BUFFER_SIZE, 0);
+      if (i < 0) {
+        perror("recv(): ");
+      }
+      printf("> %s\n", buffer);
+    }
   }
-  close(sockid);
+  close(sockfd);
   return 0;
 }
