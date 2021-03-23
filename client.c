@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   hints.ai_socktype = SOCK_STREAM;
 
   int ret;
-  if ((ret = getaddrinfo(NULL, argv[1], &hints, &server)) != 0) {
+  if ((ret = getaddrinfo("127.0.0.1", argv[1], &hints, &server)) != 0) {
     if (ret == EAI_SYSTEM)
       perror("getaddrinfo(): ");
     else

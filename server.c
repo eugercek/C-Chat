@@ -71,7 +71,6 @@ int main(int argc, char *argv[]) {
               &((struct sockaddr_in *)&client_addr)->sin_addr, client_ip_string,
               sizeof client_ip_string);
     printf("Connection : %s\n", client_ip_string);
-    sleep(2);
     close(client);
   }
   close(sockid);
