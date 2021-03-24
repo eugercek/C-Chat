@@ -1,3 +1,4 @@
+#include "shared.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netdb.h>
@@ -6,6 +7,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sysexits.h>
 #include <unistd.h>
 
 #define BUFFER_SIZE 256
@@ -20,7 +22,6 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // TODO Initializer vs memset
   // TODO Should macro?
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
@@ -38,23 +39,19 @@ int main(int argc, char *argv[]) {
   // TODO Create loop for ipv6
   if ((sockfd = socket(server->ai_family, server->ai_socktype,
                        server->ai_protocol)) == -1) {
-    perror("socket(): ");
-    exit(3);
+    error_exit("socket", EX_UNAVAILABLE);
   }
 
-  if (connect(sockfd, server->ai_addr, server->ai_addrlen) == -1) {
-    perror("connect(): ");
-    exit(3);
-  }
+  if (connect(sockfd, server->ai_addr, server->ai_addrlen) == -1)
+    error_exit("connect", EX_UNAVAILABLE);
+
   strcpy(buffer, "Hello");
   freeaddrinfo(server);
 
   while (1) {
     scanf("%s", buffer);
-    int i = send(sockfd, buffer, BUFFER_SIZE, 0);
-    if (i < 0) {
-      perror("send(): ");
-    }
+    if (send(sockfd, buffer, BUFFER_SIZE, 0) < 0)
+      error_exit("send", EX_UNAVAILABLE);
   }
   close(sockfd);
   return 0;

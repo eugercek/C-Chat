@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sysexits.h> // For Meaningful return values
 #include <unistd.h>
 
 #define BACKLOG 20
@@ -20,7 +21,7 @@ int main(int argc, char *argv[]) {
 
   if (argc != 2) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
-    exit(1);
+    exit(EX_USAGE);
   }
 
   // TODO Should macro?
@@ -35,36 +36,29 @@ int main(int argc, char *argv[]) {
       perror("getaddrinfo(): ");
     else
       fprintf(stderr, "getaddrinfo: %s", gai_strerror(ret));
-    exit(2);
+    exit(EX_UNAVAILABLE);
   }
 
   // TODO Create loop for ipv6
   if ((sockfd = socket(server->ai_family, server->ai_socktype,
                        server->ai_protocol)) == -1) {
-    perror("socket(): ");
-    exit(3);
+    error_exit("socket", EX_UNAVAILABLE);
   }
 
   // THE Most impotant funciton in this code
   // If you don't use this you can't bind same port number
   // untill TIME_WAIT time. Terrible for debug
   int yes = 1;
-  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-    perror("setsockopt(): ");
-    exit(4);
-  }
+  if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+    error_exit("setsockopt", EX_UNAVAILABLE);
 
-  if (bind(sockfd, server->ai_addr, server->ai_addrlen) == -1) {
-    perror("bind(): ");
-    exit(5);
-  }
+  if (bind(sockfd, server->ai_addr, server->ai_addrlen) == -1)
+    error_exit("bind", EX_UNAVAILABLE);
 
   freeaddrinfo(server);
 
-  if (listen(sockfd, BACKLOG) == -1) {
-    perror("listen(): ");
-    exit(6);
-  }
+  if (listen(sockfd, BACKLOG) == -1)
+    error_exit("listen", EX_UNAVAILABLE);
 
   int client;
   struct sockaddr_storage client_addr;
@@ -73,10 +67,9 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     client = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
-    if (client == -1) {
-      perror("accept(): ");
-      exit(6);
-    }
+    if (client == -1)
+      error_exit("accept", EX_UNAVAILABLE);
+
     // TODO Better way to give addr
     inet_ntop(client_addr.ss_family,
               &((struct sockaddr_in *)&client_addr)->sin_addr, client_ip_string,
@@ -84,10 +77,8 @@ int main(int argc, char *argv[]) {
     printf("Connection : %s\n", client_ip_string);
 
     while (1) {
-      int i = recv(client, buffer, BUFFER_SIZE, 0);
-      if (i < 0) {
-        perror("recv(): ");
-      }
+      if (recv(client, buffer, BUFFER_SIZE, 0) < 0)
+        error_exit("recv", EX_UNAVAILABLE);
       printf("> %s\n", buffer);
     }
   }
