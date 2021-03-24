@@ -4,6 +4,7 @@
 #include <stddef.h> // size_t
 
 // Void pointer is for return value for chaining
-void *memzero(void *ptr, size_t size);
+void *memzero(void *ptr, const size_t size);
+void error_exit(const char *function_name, const int error_return);
 
 #endif // __SHARED_H_
