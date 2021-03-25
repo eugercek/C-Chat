@@ -1,3 +1,4 @@
+#include "netutils.h"
 #include "shared.h"
 
 // Network
@@ -22,10 +23,25 @@
 #define BUFFER_SIZE 256
 #define THREAD_SIZE 12
 
+static int thread_i = 0;
+
+void *client_handler(void *arg) {
+  printf("%lu come\n", pthread_self());
+  char buffer[BUFFER_SIZE];
+  int sockfd = ((struct client_t *)arg)->sockfd;
+  free(arg);
+
+  while (1) {
+    if (recv(sockfd, buffer, BUFFER_SIZE, 0) < 1)
+      error_exit("recv", 1);
+    printf("%s\n", buffer);
+  }
+  return NULL;
+}
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
   int sockfd;
-  char buffer[BUFFER_SIZE];
+  /* char buffer[BUFFER_SIZE]; */
 
   if (argc != 2) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
@@ -75,10 +91,17 @@ int main(int argc, char *argv[]) {
 
   pthread_t tid[THREAD_SIZE];
 
-  while (1) {
+  while (1) { // Main Event Loop
     client = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
+
     if (client == -1)
       error_exit("accept", EX_UNAVAILABLE);
+
+    // Need Dynamic memory or bad things happen
+    struct client_t *p_client = malloc(sizeof(struct client_t));
+    p_client->sockfd = client;
+    if (p_client == NULL)
+      error_exit("malloc", EX_UNAVAILABLE);
 
     // TODO Better way to give addr
     inet_ntop(client_addr.ss_family,
@@ -87,11 +110,10 @@ int main(int argc, char *argv[]) {
 
     printf("Connection from : %s\n", client_ip_string);
 
-    while (1) {
-      if (recv(client, buffer, BUFFER_SIZE, 0) < 0)
-        error_exit("recv", EX_UNAVAILABLE);
-      printf("> %s\n", buffer);
-    }
+    if (pthread_create(tid + thread_i, NULL, client_handler,
+                       (void *)p_client) != 0)
+      error_exit("pthread_create", EX_UNAVAILABLE);
+    thread_i++;
   }
   close(sockfd);
   return 0;

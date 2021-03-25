@@ -8,14 +8,15 @@
 
 CC = gcc
 CFLAGS = -Wall -Wextra -g
+LDFLAGS = -pthread
 
 
 # TODO Clean Makefile
 
 all: server client
 
-server: server.o shared.o
-client: client.o shared.o
+server: server.o shared.o netutils.o
+client: client.o shared.o netutils.o
 
 
 .PHONY: clean
