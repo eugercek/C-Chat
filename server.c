@@ -1,18 +1,26 @@
 #include "shared.h"
+
+// Network
 #include <arpa/inet.h>
-#include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
+// UNIX
+#include <errno.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sysexits.h> // For Meaningful return values
 #include <unistd.h>
 
+// stdlib
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #define BACKLOG 20
 #define BUFFER_SIZE 256
+#define THREAD_SIZE 12
 
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
@@ -65,6 +73,8 @@ int main(int argc, char *argv[]) {
   char client_ip_string[INET6_ADDRSTRLEN];
   socklen_t addrlen = sizeof client_addr;
 
+  pthread_t tid[THREAD_SIZE];
+
   while (1) {
     client = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
     if (client == -1)
@@ -74,7 +84,8 @@ int main(int argc, char *argv[]) {
     inet_ntop(client_addr.ss_family,
               &((struct sockaddr_in *)&client_addr)->sin_addr, client_ip_string,
               sizeof client_ip_string);
-    printf("Connection : %s\n", client_ip_string);
+
+    printf("Connection from : %s\n", client_ip_string);
 
     while (1) {
       if (recv(client, buffer, BUFFER_SIZE, 0) < 0)

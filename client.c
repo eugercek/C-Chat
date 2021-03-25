@@ -1,14 +1,21 @@
+#include "netutils.h"
 #include "shared.h"
+
+// Network
 #include <arpa/inet.h>
-#include <errno.h>
 #include <netdb.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+
+// UNIX
+#include <errno.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sysexits.h>
 #include <unistd.h>
+
+// stdlib
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define BUFFER_SIZE 256
 
@@ -50,8 +57,8 @@ int main(int argc, char *argv[]) {
 
   while (1) {
     scanf("%s", buffer);
-    if (send(sockfd, buffer, BUFFER_SIZE, 0) < 0)
-      error_exit("send", EX_UNAVAILABLE);
+    if (send_all(sockfd, buffer, BUFFER_SIZE) == -1)
+      error_exit("send_all", EX_UNAVAILABLE);
   }
   close(sockfd);
   return 0;
