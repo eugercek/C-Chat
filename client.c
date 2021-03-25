@@ -18,6 +18,7 @@
 #include <string.h>
 
 #define BUFFER_SIZE 256
+#define MAX_USERNAME_SIZE 16
 
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
@@ -54,6 +55,17 @@ int main(int argc, char *argv[]) {
 
   strcpy(buffer, "Hello");
   freeaddrinfo(server);
+
+  // Welcome!\n Enter a username:
+  if (recv(sockfd, buffer, BUFFER_SIZE, 0) < 0)
+    error_exit("recv", EX_UNAVAILABLE);
+  printf("%s", buffer);
+
+  char username[MAX_USERNAME_SIZE];
+  scanf("%s", username);
+
+  if (send_all(sockfd, username, MAX_USERNAME_SIZE) == -1)
+    error_exit("send_all", EX_UNAVAILABLE);
 
   while (1) {
     scanf("%s", buffer);

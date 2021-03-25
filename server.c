@@ -23,6 +23,7 @@
 #define BACKLOG 20
 #define BUFFER_SIZE 256
 #define THREAD_SIZE 12
+#define MAX_USERNAME_SIZE 16
 
 static int thread_i = 0;
 
@@ -33,6 +34,19 @@ void *client_handler(void *arg) {
   int ret;
   free(arg);
 
+  const char *welcome = "Welcome !\nEnter a username:";
+
+  if (send_all(sockfd, welcome, strlen(welcome)) == -1)
+    error_exit("send_all", EX_UNAVAILABLE);
+
+  char username[MAX_USERNAME_SIZE];
+  if (recv(sockfd, username, MAX_USERNAME_SIZE, 0) < 0)
+    error_exit("recv", EX_UNAVAILABLE);
+  printf("%s joined!\n", username);
+  fflush(stdout);
+
+  // TODO Check is antoher user has already connected with same username ?
+
   while (1) {
     ret = recv(sockfd, buffer, BUFFER_SIZE, 0);
     if (ret < 0)
@@ -40,7 +54,7 @@ void *client_handler(void *arg) {
     else if (ret == 0) // Client closed connection
       break;
 
-    printf("%s\n", buffer);
+    printf("%s\t:%s\n", username, buffer);
   }
   pthread_exit(NULL);
 }
