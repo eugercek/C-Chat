@@ -75,7 +75,8 @@ int main(int argc, char *argv[]) {
   printf("%s", buffer);
 
   char username[MAX_USERNAME_SIZE];
-  scanf("%s", username);
+  fgets(username, MAX_USERNAME_SIZE, stdin);
+  remove_newline(username);
 
   if (send_all(serverfd, username, MAX_USERNAME_SIZE) == -1)
     error_exit("send_all", EX_UNAVAILABLE);
@@ -83,7 +84,8 @@ int main(int argc, char *argv[]) {
   pthread_t tid;
   pthread_create(&tid, NULL, listen_server, NULL);
   while (1) {
-    scanf("%s", buffer);
+    fgets(buffer, BUFFER_SIZE, stdin);
+    remove_newline(buffer);
     if (send_all(serverfd, buffer, BUFFER_SIZE) == -1)
       error_exit("send_all", EX_UNAVAILABLE);
   }

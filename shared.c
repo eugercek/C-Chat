@@ -21,3 +21,11 @@ char *hour_minute() {
   snprintf(ret, 10, "%d:%d", time->tm_hour, time->tm_min);
   return ret;
 }
+
+void remove_newline(char *string) {
+  if (string == NULL) {
+    fprintf(stderr, "remove_newline: string was NULL");
+    return;
+  }
+  string[strlen(string) - 1] = 0;
+}

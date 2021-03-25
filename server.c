@@ -66,7 +66,7 @@ void *client_handler(void *arg) {
     printf("%s\t:%s\n", username, buffer);
     char bigger_buffer[BUFFER_SIZE + 100];
     char *time_str = hour_minute();
-    snprintf(bigger_buffer, BUFFER_SIZE + 100, "%s\t:%-72s%s\n", username,
+    snprintf(bigger_buffer, BUFFER_SIZE + 100, "%s\t:%-48s%s\n", username,
              buffer, time_str);
     free(time_str);
     for (int i = 0; i < thread_i; i++) {
