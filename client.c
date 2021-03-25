@@ -7,6 +7,7 @@
 
 // UNIX
 #include <errno.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sysexits.h>
@@ -20,9 +21,21 @@
 #define BUFFER_SIZE 256
 #define MAX_USERNAME_SIZE 16
 
+static int serverfd;
+
+void *listen_server(void *arg) {
+  char buffer[BUFFER_SIZE];
+  while (1) {
+    if (recv(serverfd, buffer, BUFFER_SIZE, 0) < 0)
+      error_exit("recv", EX_UNAVAILABLE);
+    printf("%s", buffer);
+    fflush(stdout);
+  }
+  return NULL;
+}
+
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
-  int sockfd;
   char buffer[BUFFER_SIZE];
 
   if (argc != 2) {
@@ -45,33 +58,35 @@ int main(int argc, char *argv[]) {
   }
 
   // TODO Create loop for ipv6
-  if ((sockfd = socket(server->ai_family, server->ai_socktype,
-                       server->ai_protocol)) == -1) {
+  if ((serverfd = socket(server->ai_family, server->ai_socktype,
+                         server->ai_protocol)) == -1) {
     error_exit("socket", EX_UNAVAILABLE);
   }
 
-  if (connect(sockfd, server->ai_addr, server->ai_addrlen) == -1)
+  if (connect(serverfd, server->ai_addr, server->ai_addrlen) == -1)
     error_exit("connect", EX_UNAVAILABLE);
 
   strcpy(buffer, "Hello");
   freeaddrinfo(server);
 
   // Welcome!\n Enter a username:
-  if (recv(sockfd, buffer, BUFFER_SIZE, 0) < 0)
+  if (recv(serverfd, buffer, BUFFER_SIZE, 0) < 0)
     error_exit("recv", EX_UNAVAILABLE);
   printf("%s", buffer);
 
   char username[MAX_USERNAME_SIZE];
   scanf("%s", username);
 
-  if (send_all(sockfd, username, MAX_USERNAME_SIZE) == -1)
+  if (send_all(serverfd, username, MAX_USERNAME_SIZE) == -1)
     error_exit("send_all", EX_UNAVAILABLE);
 
+  pthread_t tid;
+  pthread_create(&tid, NULL, listen_server, NULL);
   while (1) {
     scanf("%s", buffer);
-    if (send_all(sockfd, buffer, BUFFER_SIZE) == -1)
+    if (send_all(serverfd, buffer, BUFFER_SIZE) == -1)
       error_exit("send_all", EX_UNAVAILABLE);
   }
-  close(sockfd);
+  close(serverfd);
   return 0;
 }

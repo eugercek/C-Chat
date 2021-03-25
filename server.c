@@ -27,7 +27,7 @@
 
 static int thread_i = 0; // thread_i also says how many client have created.
 
-static int threads[THREAD_NUMBER];
+static int clients[THREAD_NUMBER];
 
 void *client_handler(void *arg) {
   printf("%lu come\n", pthread_self());
@@ -37,14 +37,21 @@ void *client_handler(void *arg) {
   free(arg);
 
   const char *welcome = "Welcome !\nEnter a username:";
-
   if (send_all(sockfd, welcome, strlen(welcome)) == -1)
     error_exit("send_all", EX_UNAVAILABLE);
 
   char username[MAX_USERNAME_SIZE];
   if (recv(sockfd, username, MAX_USERNAME_SIZE, 0) < 0)
     error_exit("recv", EX_UNAVAILABLE);
+
   printf("%s joined!\n", username);
+  snprintf(buffer, BUFFER_SIZE, "%s joined!\n", username);
+  for (int i = 0; i < thread_i; i++) {
+    if (sockfd == clients[i])
+      continue;
+    if (send_all(clients[i], buffer, BUFFER_SIZE) == -1)
+      error_exit("send_all", EX_UNAVAILABLE);
+  }
   fflush(stdout);
 
   // TODO Check is antoher user has already connected with same username ?
@@ -57,6 +64,17 @@ void *client_handler(void *arg) {
       break;
 
     printf("%s\t:%s\n", username, buffer);
+    char bigger_buffer[BUFFER_SIZE + 100];
+    char *time_str = hour_minute();
+    snprintf(bigger_buffer, BUFFER_SIZE + 100, "%s\t:%-72s%s\n", username,
+             buffer, time_str);
+    free(time_str);
+    for (int i = 0; i < thread_i; i++) {
+      if (sockfd == clients[i])
+        continue;
+      if (send_all(clients[i], bigger_buffer, BUFFER_SIZE + 100) == -1)
+        error_exit("send_all", EX_UNAVAILABLE);
+    }
   }
   pthread_exit(NULL);
 }
@@ -142,6 +160,7 @@ int main(int argc, char *argv[]) {
     if (pthread_create(tid + thread_i, NULL, client_handler,
                        (void *)p_client) != 0)
       error_exit("pthread_create", EX_UNAVAILABLE);
+    clients[thread_i] = clientfd;
 
     pthread_detach(tid[thread_i]);
     thread_i++;
