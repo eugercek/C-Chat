@@ -86,8 +86,14 @@ int main(int argc, char *argv[]) {
   while (1) {
     fgets(buffer, BUFFER_SIZE, stdin);
     remove_newline(buffer);
-    if (send_all(serverfd, buffer, BUFFER_SIZE) == -1)
-      error_exit("send_all", EX_UNAVAILABLE);
+
+    if (buffer[0] == '/') { // Command Mode
+      if (strcmp(buffer + 1, "quit") == 0 || strcmp(buffer + 1, "exit"))
+        exit(0);
+    } else {
+      if (send_all(serverfd, buffer, BUFFER_SIZE) == -1)
+        error_exit("send_all", EX_UNAVAILABLE);
+    }
   }
   close(serverfd);
   return 0;
