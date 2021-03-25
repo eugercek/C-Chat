@@ -9,6 +9,7 @@
 // UNIX
 #include <errno.h>
 #include <pthread.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sysexits.h> // For Meaningful return values
@@ -29,15 +30,21 @@ void *client_handler(void *arg) {
   printf("%lu come\n", pthread_self());
   char buffer[BUFFER_SIZE];
   int sockfd = ((struct client_t *)arg)->sockfd;
+  int ret;
   free(arg);
 
   while (1) {
-    if (recv(sockfd, buffer, BUFFER_SIZE, 0) < 1)
-      error_exit("recv", 1);
+    ret = recv(sockfd, buffer, BUFFER_SIZE, 0);
+    if (ret < 0)
+      error_exit("recv", EX_UNAVAILABLE);
+    else if (ret == 0) // Client closed connection
+      break;
+
     printf("%s\n", buffer);
   }
-  return NULL;
+  pthread_exit(NULL);
 }
+
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
   int sockfd;
@@ -47,6 +54,14 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
     exit(EX_USAGE);
   }
+
+  // TODO Add proper signal handling
+  // If client stopped/killed however and socket is not closed
+  // And server tries do something with that socket
+  // It'll get SIGPIPE and program will get killed
+  struct sigaction sa;
+  sa.sa_handler = SIG_IGN;
+  sigaction(SIGPIPE, &sa, 0);
 
   // TODO Should macro?
   memzero(&hints, sizeof hints);
@@ -91,7 +106,7 @@ int main(int argc, char *argv[]) {
 
   pthread_t tid[THREAD_SIZE];
 
-  while (1) { // Main Event Loop
+  while (1) { // Main Loop
     client = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
 
     if (client == -1)
@@ -113,6 +128,7 @@ int main(int argc, char *argv[]) {
     if (pthread_create(tid + thread_i, NULL, client_handler,
                        (void *)p_client) != 0)
       error_exit("pthread_create", EX_UNAVAILABLE);
+    pthread_detach(tid[thread_i]);
     thread_i++;
   }
   close(sockfd);
