@@ -22,10 +22,12 @@
 
 #define BACKLOG 20
 #define BUFFER_SIZE 256
-#define THREAD_SIZE 12
+#define THREAD_NUMBER 12
 #define MAX_USERNAME_SIZE 16
 
-static int thread_i = 0;
+static int thread_i = 0; // thread_i also says how many client have created.
+
+static int threads[THREAD_NUMBER];
 
 void *client_handler(void *arg) {
   printf("%lu come\n", pthread_self());
@@ -62,8 +64,6 @@ void *client_handler(void *arg) {
 int main(int argc, char *argv[]) {
   struct addrinfo hints, *server;
   int sockfd;
-  /* char buffer[BUFFER_SIZE]; */
-
   if (argc != 2) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
     exit(EX_USAGE);
@@ -98,9 +98,7 @@ int main(int argc, char *argv[]) {
     error_exit("socket", EX_UNAVAILABLE);
   }
 
-  // THE Most impotant funciton in this code
-  // If you don't use this you can't bind same port number
-  // untill TIME_WAIT time. Terrible for debug
+  // To use same port without waiting TIME_WAIT
   int yes = 1;
   if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
     error_exit("setsockopt", EX_UNAVAILABLE);
@@ -113,24 +111,26 @@ int main(int argc, char *argv[]) {
   if (listen(sockfd, BACKLOG) == -1)
     error_exit("listen", EX_UNAVAILABLE);
 
-  int client;
+  int clientfd;
   struct sockaddr_storage client_addr;
   char client_ip_string[INET6_ADDRSTRLEN];
   socklen_t addrlen = sizeof client_addr;
 
-  pthread_t tid[THREAD_SIZE];
+  pthread_t tid[THREAD_NUMBER];
 
-  while (1) { // Main Loop
-    client = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
+  while (1) { // Accepting new clients to server
+    clientfd = accept(sockfd, (struct sockaddr *)&client_addr, &addrlen);
 
-    if (client == -1)
+    if (clientfd == -1)
       error_exit("accept", EX_UNAVAILABLE);
 
     // Need Dynamic memory or bad things happen
     struct client_t *p_client = malloc(sizeof(struct client_t));
-    p_client->sockfd = client;
+
     if (p_client == NULL)
       error_exit("malloc", EX_UNAVAILABLE);
+
+    p_client->sockfd = clientfd;
 
     // TODO Better way to give addr
     inet_ntop(client_addr.ss_family,
@@ -142,6 +142,7 @@ int main(int argc, char *argv[]) {
     if (pthread_create(tid + thread_i, NULL, client_handler,
                        (void *)p_client) != 0)
       error_exit("pthread_create", EX_UNAVAILABLE);
+
     pthread_detach(tid[thread_i]);
     thread_i++;
   }
