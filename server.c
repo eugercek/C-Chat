@@ -1,3 +1,4 @@
+#include "logger.h"
 #include "netutils.h"
 #include "shared.h"
 
@@ -29,8 +30,9 @@ static int thread_i = 0; // thread_i also says how many client have created.
 
 static int clients[THREAD_NUMBER];
 
+Logger *logger;
+
 void *client_handler(void *arg) {
-  printf("%lu come\n", pthread_self());
   char buffer[BUFFER_SIZE];
   int sockfd = ((struct client_t *)arg)->sockfd;
   int ret;
@@ -76,14 +78,22 @@ void *client_handler(void *arg) {
         error_exit("send_all", EX_UNAVAILABLE);
     }
   }
+  logger->mutex_lock(logger);
+  logger->log_line(logger, "Client Exit");
+  logger->mutex_unlock(logger);
   pthread_exit(NULL);
 }
 
 int main(int argc, char *argv[]) {
+  logger = NewLogger();
   struct addrinfo hints, *server;
+
   int sockfd;
   if (argc != 2) {
     fprintf(stderr, "Usage : %s port_no\n", argv[0]);
+    logger->mutex_lock(logger);
+    logger->log_line(logger, "Wrong argument");
+    logger->mutex_unlock(logger);
     exit(EX_USAGE);
   }
 
@@ -157,6 +167,10 @@ int main(int argc, char *argv[]) {
 
     printf("Connection from : %s\n", client_ip_string);
 
+    logger->mutex_lock(logger);
+    logger->log_line(logger, "Client Come");
+    logger->mutex_unlock(logger);
+
     if (pthread_create(tid + thread_i, NULL, client_handler,
                        (void *)p_client) != 0)
       error_exit("pthread_create", EX_UNAVAILABLE);
@@ -166,5 +180,6 @@ int main(int argc, char *argv[]) {
     thread_i++;
   }
   close(sockfd);
+  logger->free_self(logger);
   return 0;
 }

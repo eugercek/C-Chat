@@ -15,7 +15,7 @@ LDFLAGS = -pthread
 
 all: server client
 
-server: server.o shared.o netutils.o
+server: server.o shared.o netutils.o logger.o
 client: client.o shared.o netutils.o
 
 
