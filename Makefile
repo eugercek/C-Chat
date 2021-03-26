@@ -21,6 +21,6 @@ client: client.o shared.o netutils.o
 
 .PHONY: clean
 clean:
-	rm -rf $(OBJS)
-	rm -rf $(TARGETS)
+	rm -rf $(wildcard *.o)
+	rm -rf server client
 # end
