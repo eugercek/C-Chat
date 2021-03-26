@@ -35,6 +35,9 @@ Logger *logger;
 void *client_handler(void *arg) {
   char buffer[BUFFER_SIZE];
   int sockfd = ((struct client_t *)arg)->sockfd;
+  char ip[INET6_ADDRSTRLEN];
+
+  strcpy(ip, ((struct client_t *)arg)->ip);
   int ret;
   free(arg);
 
@@ -47,6 +50,9 @@ void *client_handler(void *arg) {
     error_exit("recv", EX_UNAVAILABLE);
 
   printf("%s joined!\n", username);
+  logger->mutex_lock(logger);
+  logger->log_line(logger, "%s -> %s", ip, username);
+  logger->mutex_unlock(logger);
   snprintf(buffer, BUFFER_SIZE, "%s joined!\n", username);
   for (int i = 0; i < thread_i; i++) {
     if (sockfd == clients[i])
@@ -79,7 +85,7 @@ void *client_handler(void *arg) {
     }
   }
   logger->mutex_lock(logger);
-  logger->log_line(logger, "Client Exit");
+  logger->log_line(logger, "Disconnection %s\t%s", username, ip);
   logger->mutex_unlock(logger);
   pthread_exit(NULL);
 }
@@ -158,17 +164,17 @@ int main(int argc, char *argv[]) {
     if (p_client == NULL)
       error_exit("malloc", EX_UNAVAILABLE);
 
-    p_client->sockfd = clientfd;
-
-    // TODO Better way to give addr
     inet_ntop(client_addr.ss_family,
-              &((struct sockaddr_in *)&client_addr)->sin_addr, client_ip_string,
+              get_in_addr((struct sockaddr *)&client_addr), client_ip_string,
               sizeof client_ip_string);
 
     printf("Connection from : %s\n", client_ip_string);
 
+    p_client->sockfd = clientfd;
+    strcpy(p_client->ip, client_ip_string);
+
     logger->mutex_lock(logger);
-    logger->log_line(logger, "Client Come");
+    logger->log_line(logger, "Connection from %s", client_ip_string);
     logger->mutex_unlock(logger);
 
     if (pthread_create(tid + thread_i, NULL, client_handler,
