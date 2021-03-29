@@ -16,7 +16,7 @@ i.e
 If you really need to use then.
 
 #+begin_src bash
-sudo ./server 3000
+sudo ./server 300
 #+end_src
 ** Run Client
 #+begin_src bash
