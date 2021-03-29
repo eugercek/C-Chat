@@ -111,7 +111,6 @@ int main(int argc, char *argv[]) {
   sa.sa_handler = SIG_IGN;
   sigaction(SIGPIPE, &sa, 0);
 
-  // TODO Should macro?
   memzero(&hints, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
@@ -170,6 +169,7 @@ int main(int argc, char *argv[]) {
 
     printf("Connection from : %s\n", client_ip_string);
 
+    // Load client's info for its thread
     p_client->sockfd = clientfd;
     strcpy(p_client->ip, client_ip_string);
 
