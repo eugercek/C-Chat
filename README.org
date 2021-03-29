@@ -1,1 +1,35 @@
-* How to use
+* How to compile and Use
+#+begin_src bash
+git clone git@github.com:EminUmutGercek/C-Chat.git
+cd C-Chat
+make 2> /dev/null
+#+end_src
+
+** Run Server
+Don't use port number less than 1024.
+
+i.e
+#+begin_src bash
+./server 3000
+#+end_src
+
+If you really need to use then.
+
+#+begin_src bash
+sudo ./server 3000
+#+end_src
+** Run Client
+#+begin_src bash
+./client 3000
+#+end_src
+* TO-DO List
+Extracted with =(magit-todo-list)=
+
+- Makefile TODO Think about autotools
+- Makefile TODO Clean Makefile
+- client.c TODO Should macro?
+- client.c TODO Create loop for ipv6
+- server.c TODO Check is antoher user has already connected with same username ?
+- server.c TODO Add proper signal handling
+- server.c TODO Create loop for ipv6
+- shared.c TODO Find better size for hour_minute malloc
