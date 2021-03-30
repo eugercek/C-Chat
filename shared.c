@@ -16,10 +16,10 @@ void error_exit(const char *function_name, const int error_return) {
 
 char *hour_minute() {
   time_t now = time(NULL);
-  struct tm *time = localtime(&now);
+  struct tm *info = localtime(&now);
   // TODO Find better size for hour_minute malloc
   char *ret = malloc(sizeof(char) * 10);
-  snprintf(ret, 10, "%d:%d", time->tm_hour, time->tm_min);
+  strftime(ret, 10, "%H:%M", info);
   return ret;
 }
 
